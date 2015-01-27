@@ -67,6 +67,7 @@ lmFiltered
 rlmPCA <- train(solTrainXtrans, solTrainY,
                 method='rlm',
                 preProcess='pca',
+                tuneLength=20,
                 trControl=ctrl)
 rlmPCA
 
@@ -85,12 +86,22 @@ pcrTune <- train(x = solTrainXtrans, y = solTrainY,
                  trControl = ctrl)
 pcrTune
 
+
+widekTune <- train(x = solTrainXtrans, y = solTrainY,
+                   method = "widekernelpls",
+                   tuneGrid = expand.grid(ncomp = 1:35),
+                   trControl = ctrl)
+widekTune
+
 # compare models:
 plsResamples <- plsTune$results
 plsResamples$Model <- 'PLS'
 pcrResamples <- pcrTune$results
 pcrResamples$Model <- 'PCR'
-plsPlotData <- rbind(plsResamples, pcrResamples)
+wkResamples <- widekTune$results
+wkResamples$Model <- 'widekernel'
+
+plsPlotData <- rbind(plsResamples, pcrResamples, wkResamples)
 
 # This is good stuff:
 xyplot(RMSE ~ ncomp,
