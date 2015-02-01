@@ -46,6 +46,7 @@ marsTuned <- train(solTrainXtrans, solTrainY,
                    tuneGrid=marsGrid,
                    trControl=trainControl(method='cv'))
 marsTuned
+plot(marsTuned)
 # show variable importance:
 varimp <- varImp(marsTuned)
 # show all vars where importance is > 0
@@ -60,7 +61,6 @@ svmLin <- train(solTrainXtrans, solTrainY,
                 tuneLength=14,
                 trControl = ctrl
                 )
-
 
 svmRad <- train(x = solTrainXtrans, y = solTrainY,
                   method = "svmRadial",
@@ -81,7 +81,7 @@ svmPoly <- train(x = solTrainXtrans, y = solTrainY,
                   trControl = ctrl)
 plot(svmPoly,
      scales = list(x = list(log = 2),
-                   between = list(x = .5, y = 1))) 
+     between = list(x = .5, y = 1))) 
 
 # K-Nearest Neighbors
 
