@@ -3,7 +3,7 @@
 library(partykit)
 library('party')
 library(doMC)
-registerDoMC(4)
+registerDoMC(5)
 
 set.seed(100)
 
@@ -73,6 +73,18 @@ gbmTune <- train(solTrainXtrans, solTrainY,
                  verbose=FALSE)
 
 # Cubist Models
+cbGrid <- expand.grid(committees = c(1:10, 20, 50),
+                      neighbors = c(5, 9, 13, 25))
 
 cubistTune <- train(solTrainXtrans, solTrainY,
-                    method = 'cubist')
+                    method = 'cubist',
+                    tuneGrid = cbGrid,
+                    trControl = ctrl)
+
+cubistTune
+summary(cubistTune)
+plot(cubistTune)
+plot(cubistTune, auto.key = list(columns = 4, lines = TRUE))
+cbImp <- varImp(cubistTune, scale = FALSE)
+cbImp
+plot(cbImp, top=20)
