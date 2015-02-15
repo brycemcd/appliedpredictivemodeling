@@ -167,3 +167,63 @@ dotplot(allResamples, metric="Rsquared")
 
 splom(allResamples) # defaults to RMSE
 splom(allResamples, metric= "Rsquared")
+
+# Here, we want to find an optimum set of mixture components for strength. Remove
+# outcome data, scale/center and create samples to begin a search of best composition
+
+age28Data <- subset(trainingSet, Age == 28) # Typo in book, trainingSet is right
+pp1 <- preProcess(age28Data[, -(8:9)],
+                  c('center', 'scale'))
+scaledTrain <- predict(pp1, age28Data[, 1:7])
+set.seed(91) #??
+startMixture <- sample(1:nrow(age28Data), 1)
+# produces one starter
+starters <- scaledTrain[startMixture, 1:7]
+pool <- scaledTrain
+index <- maxDissim(starters, pool, 14)
+startPoints <- c(startMixture, index)
+starters <- age28Data[startPoints, 1:7]
+
+# remove water from the components of the mixture (see pg. 241 for why)
+startingValues <- starters[, -4]
+modelPrediction <- function(x, mod, limit = 2500)
+{
+  if(x[1] < 0 | x[1] > 1) return(10^38)
+  if(x[2] < 0 | x[2] > 1) return(10^38)
+  if(x[3] < 0 | x[3] > 1) return(10^38)
+  if(x[4] < 0 | x[4] > 1) return(10^38)
+  if(x[5] < 0 | x[5] > 1) return(10^38)
+  if(x[6] < 0 | x[6] > 1) return(10^38)
+  x <- c(x, 1 - sum(x))
+  if(x[7] < 0.05) return(10^38)
+  tmp <- as.data.frame(t(x))
+  names(tmp) <- c('Cement','BlastFurnaceSlag','FlyAsh',
+                  'Superplasticizer','CoarseAggregate',
+                  'FineAggregate', 'Water')
+  tmp$Age <- 28
+  -predict(mod, tmp)
+}
+
+# start with Cubist
+cbResults <- startingValues
+cbResults$Water <- NA
+cbResults$Prediction <- NA
+
+for(i in 1:nrow(cbResults)) {
+  results <- optim(unlist(cbResults[i,1:6]),
+                   modelPrediction,
+                   method = "Nelder-Mead",
+                   control=list(maxit=5000),
+                   mod = cbModel)
+  cbResults$Prediction[i] <- -results$value
+  cbResults[i,1:6] <- results$par
+}
+
+cbResults$Water <- 1 - apply(cbResults[, 1:6], 1, sum)
+cbResults <- cbResults[order(-cbResults$Prediction), ][1:3, ]
+cbResults$Model <- 'Cubist'
+str(cbResults)
+
+nnetResults <- startingValues
+nnetResults$Water <- NA
+nnetResults$Prediction <- NA
