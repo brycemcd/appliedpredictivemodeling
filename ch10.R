@@ -5,6 +5,9 @@ library(AppliedPredictiveModeling)
 library(caret)
 library(plyr)
 
+library(doMC)
+registerDoMC(5)
+
 data(concrete)
 str(concrete)
 str(mixtures)
@@ -224,6 +227,43 @@ cbResults <- cbResults[order(-cbResults$Prediction), ][1:3, ]
 cbResults$Model <- 'Cubist'
 str(cbResults)
 
+## neural net:
 nnetResults <- startingValues
 nnetResults$Water <- NA
 nnetResults$Prediction <- NA
+
+for(i in 1:nrow(nnetResults)) {
+  results <- optim(unlist(nnetResults[i, 1:6,]),
+                   modelPrediction,
+                   method = "Nelder-Mead",
+                   control=list(maxit=5000),
+                   mod = nnetFit)
+  nnetResults$Prediction[i] <- -results$value
+  nnetResults[i,1:6] <- results$par
+}
+
+nnetResults$Water <- 1 - apply(nnetResults[, 1:6], 1, sum)
+nnetResults <- nnetResults[order(-nnetResults$Prediction), ][1:3,]
+nnetResults$Model <- "NNet"
+
+pp2 <- preProcess(age28Data[, 1:7], "pca")
+pca1 <- predict(pp2, age28Data[, 1:7])
+pca1$Data <- "Training Set"
+pca1$Data[startPoints] <- "Starting Values"
+pca3 <- predict(pp2, cbResults[, names(age28Data[, 1:7])])
+pca3$Data <- "Cubist"
+pca4 <- predict(pp2, nnetResults[, names(age28Data[, 1:7])])
+pca4$Data <- "Neural Network"
+pcaData <- rbind(pca1, pca3, pca4)
+pcaData$Data <- factor(pcaData$Data,
+                       levels = c("Training Set","Starting Values",
+                                  "Cubist","Neural Network"))
+
+lim <- extendrange(pcaData[, 1:2])
+xyplot(PC2 ~ PC1,
+       data = pcaData,
+       groups = Data,
+       auto.key = list(columns = 2),
+       xlim = lim,
+       ylim = lim,
+       type = c("g", "p"))
