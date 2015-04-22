@@ -2,6 +2,8 @@ library("AppliedPredictiveModeling")
 library('subselect')
 library('rms')
 library('MASS')
+library('pls')
+library('glmnet')
 # creates data set to play around with. Copied/Pasted from
 # https://raw.githubusercontent.com/cran/AppliedPredictiveModeling/master/inst/chapters/CreateGrantData.R
 
@@ -81,3 +83,85 @@ plot(reducedRoc, legacy.axes = TRUE)
 auc(reducedRoc)
 
 #LDA
+grantPreProcess <- preProcess(training[pre2008, reducedSet])
+grantPreProcess
+
+scaledPre2008 <- predict(grantPreProcess, newdata = training[pre2008, reducedSet])
+scaled2008HoldOut <- predict(grantPreProcess, newdata = training[-pre2008, reducedSet])
+
+ldaModel <- lda(x = scaledPre2008,
+                grouping = training$Class[pre2008])
+
+head(ldaModel$scaling)
+plot(ldaModel)
+
+ldaHoldOutPredictions <- predict(ldaModel, scaled2008HoldOut)
+head(ldaHoldOutPredictions$class)
+head(ldaHoldOutPredictions$posterior)
+
+# now with more caret
+set.seed(476)
+ldaFit1 <- train(x = training[, reducedSet],
+                 y = training$Class,
+                 method =  'lda',
+                 preProc = c('center', 'scale'),
+                 metric = 'ROC',
+                 trControl = ctrl)
+ldaFit1
+
+ldaTestClasses <- predict(ldaFit1,
+                          newdata = testing[, reducedSet])
+ldaTestProbs <- predict(ldaFit1,
+                        newdata = testing[, reducedSet],
+                        type = 'prob')
+head(ldaTestProbs)
+
+# PLS discriminant Analysis
+
+plsFit2 <- train(x = training[, reducedSet],
+                 y = training$Class,
+                 method = 'pls',
+                 tuneGrid = expand.grid(.ncomp = 1:10),
+                 preProc = c('center', 'scale'),
+                 metric = 'ROC',
+                 trControl = ctrl)
+plsProbs <- predict(plsFit2, newdata = training[-2008, reducedSet],
+                    type = 'prob')
+head(plsProbs)
+plsImpGrant <- varImp(plsFit2, scale = FALSE)
+plsImpGrant
+plot(plsImpGrant, top=20, scales = list(y = list(cex = 0.95)))
+
+# Penalized Models
+
+glmnetModel <- glmnet(x = as.matrix(training[,fullSet]),
+                      y = training$Class,
+                      family = 'binomial')
+predict(glmnetModel,
+        newx = as.matrix(training[1:5, fullSet]),
+        s = c(0.05, 0.1, 0.2),
+        type = 'class')
+
+glmnGrid <- expand.grid(.alpha = c(0, 0.1, 0.2, 0.4, 0.6, 0.8, 1),
+                        .lambda = seq(0.01, 0.2, length=40))
+glmnGrid
+glmnTuned <- train(training[, fullSet],
+                   y = training$Class,
+                   method = 'glmnet',
+                   tuneGrid = glmnGrid,
+                   preProc = c('center', 'scale'),
+                   metric = 'ROC',
+                   trControl = ctrl)
+
+# nearest shrunken centroids
+nscGrid <- data.frame(.threshold = 0:25)
+nscTuned <- train(x = training[,fullSet],
+                  y = training$Class,
+                  method = 'pam',
+                  preProc = c('center', 'scale'),
+                  tuneGrid = nscGrid,
+                  metric = 'ROC',
+                  trControl = ctrl)
+
+predictors(nscTuned)
+varImp(nscTuned, scale = FALSE)
