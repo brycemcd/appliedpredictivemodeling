@@ -165,3 +165,11 @@ nscTuned <- train(x = training[,fullSet],
 
 predictors(nscTuned)
 varImp(nscTuned, scale = FALSE)
+
+confusionMatrix(data = nscTuned$pred$pred,
+                reference = nscTuned$pred$obs)
+
+reducedRoc <- roc(response = nscTuned$pred$obs,
+                  predictor = nscTuned$pred$successful,
+                  levels = rev(levels(nscTuned$pred$obs)))
+plot(reducedRoc, legacy.axes = TRUE)
