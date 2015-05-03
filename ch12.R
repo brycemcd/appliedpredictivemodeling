@@ -52,11 +52,7 @@ plot(dayProfile, ylab='Log Odds')
 
 
 # using caret
-ctrl <- trainControl( method = 'LGOCV',
-                      summaryFunction = twoClassSummary,
-                      classProbs = TRUE,
-                      index = list(TrainSet = pre2008),
-                      savePredictions = TRUE)
+source('linear-nonlinear-classification-ctrl.R')
 
 set.seed(476)
 lrFull <- train(training[, fullSet],

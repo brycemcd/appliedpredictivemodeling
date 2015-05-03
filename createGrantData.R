@@ -47,7 +47,7 @@ library(lubridate)
 ## How many cores on the machine should be used for the data
 ## processing. Making cores > 1 will speed things up (depending on your
 ## machine) but will consume more memory.
-cores <- 3
+cores <- 8
 
 if(cores > 1) {
   library(doMC)
