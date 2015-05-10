@@ -1,4 +1,4 @@
-# Ch 16
+# Ch 16 - remedies for severe class imbalance
 library('AppliedPredictiveModeling')
 library('caret')
 library('C50')
